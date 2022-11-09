@@ -1,0 +1,4 @@
+D:/Data/Development/cpp/pstab/build/CMakeFiles/clipper2lib.dir
+D:/Data/Development/cpp/pstab/build/CMakeFiles/pstab.dir
+D:/Data/Development/cpp/pstab/build/CMakeFiles/edit_cache.dir
+D:/Data/Development/cpp/pstab/build/CMakeFiles/rebuild_cache.dir
