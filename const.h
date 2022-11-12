@@ -4,3 +4,5 @@ const int NUM_X = 2;  // number of points in x direction (>=2)
 const int NUM_Z = 2;  // number of points in z direction (>=2)
 const int NUM_T = 2;  // number of tangent points (>=2)
 const int NUM_S = 10; // number of slices to use
+const double VOL_WEIGHT_WATER = 9.81; // volumetric weight of water
+        

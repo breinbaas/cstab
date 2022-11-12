@@ -1,5 +1,6 @@
 #include <vector>
 #include <string>
+#include <stdexcept>
 
 #include "clipper2/clipper.h"
 #include "homog2d/homog2d.h"
@@ -43,6 +44,7 @@ class BishopModel
 {
 public:
     vector<Soil> soils;
+    vector<SoilPolygon> soilpolygons;
     vector<SoilPolygon> soilpolygons_above_pl;
     vector<SoilPolygon> soilpolygons_below_pl;
     BishopSearchGrid bishop_search_grid;

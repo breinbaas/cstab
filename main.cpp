@@ -2,6 +2,7 @@
 #include "clipper2/clipper.h"
 #include "rapidjson/document.h"
 #include "homog2d/homog2d.h"
+#include "NumCpp.hpp"
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -10,6 +11,7 @@
 #include <array>
 #include <pthread.h>
 #include <future>
+#include <cmath>
 
 #include <chrono> // temporay to allow performance measurements
 
@@ -22,6 +24,8 @@
 using namespace std;
 using namespace rapidjson;
 using namespace Clipper2Lib;
+
+
 
 PathsD h2dpoints_to_pathsd(const vector<h2d::Point2d> &points)
 {
@@ -41,6 +45,41 @@ PathsD soilpolygon_to_pathsd(SoilPolygon &soilpolygon)
     string s;
     PathsD p = h2dpoints_to_pathsd(soilpolygon.points);
     return p;
+}
+
+// calculation of water pressure at the given x, z location
+double u_at(double x, double z, const h2d::OPolyline &phreatic_line){
+    for(int i=1; i<phreatic_line.size(); i++){
+        if(phreatic_line.getPoint(i-1).getX() <= x <= phreatic_line.getPoint(i).getX()){
+            double x1 = phreatic_line.getPoint(i-1).getX();
+            double x2 = phreatic_line.getPoint(i).getX();
+            double z1 = phreatic_line.getPoint(i-1).getY();
+            double z2 = phreatic_line.getPoint(i).getY();
+            double zt = z1 + (x-x1)/(x2-x1) * (z2-z1);
+            return (zt - z) * VOL_WEIGHT_WATER;
+        }
+    }
+    return 0.0;
+}
+
+Soil get_soil(const string &soilcode, const vector<Soil> soils){
+    for(Soil soil : soils){
+        if(soil.code.compare(soilcode)==0){
+            return soil;
+        }
+    }
+    throw std::invalid_argument( "received unknown soilcode");
+}
+
+string get_soil_at(const double x, const double z, const vector<SoilPolygon> &soilpoylgons){
+    for(SoilPolygon spg: soilpoylgons){
+        
+        h2d::Point2d pt = h2d::Point2d(x,z);
+        if(pt.isInside(h2d::CPolyline(spg.points))){
+            return spg.soilcode;
+        }
+    }
+    throw std::invalid_argument( "point not in polygons or on the edge of a polygon");
 }
 
 // double arr[] = {x1, top, x2, top, x2, z2, x3, z3, x1, z1};
@@ -114,6 +153,7 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
         double z2 = mz - sqrt(pow(radius, 2.0) - pow(mx - x2, 2.0)); // z value at bottom right of the slice
         double z3 = mz - sqrt(pow(radius, 2.0) - pow(mx - x3, 2.0)); // z value at bottom mid of the slice
 
+        cout << endl;
         cout << "SLICE " << i << endl;
         cout << "x slice left            : " << x1 << endl;
         cout << "x slice middle          : " << x3 << endl;
@@ -171,46 +211,43 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
             }
         }
 
-        cout << "number of soilpolygons above pl: " << soilpolygons_above_pl.size() << endl;
-        cout << "number of soilpolygons below pl: " << soilpolygons_below_pl.size() << endl;
+        cout << "#soilpolygons above pl  : " << soilpolygons_above_pl.size() << endl;
+        cout << "#soilpolygons below pl  : " << soilpolygons_below_pl.size() << endl;
 
-        int j = 1;
+        double base_alpha = atan2((mz - z3), (mx - x3)) - 0.5 * PI;
+        double b = x2 - x1;  // width of the slice
+        double base_L = b / cos(base_alpha);  // length at bottom of slice
+        double u = u_at(x3, z3, model.phreatic_line); // waterpressure
+        double W = 0;
 
-        //     surface_points = (
-        //         self.calculation_model.soilprofile2.get_surface_within_limits(x1, x2) # als je de surface hebt moet dit makkelijk in cpp kunnen
-        //     )
+        for(SoilPolygon spg : soilpolygons_above_pl){
+            h2d::CPolyline polygon = h2d::CPolyline(spg.points);
+            Soil soil = get_soil(spg.soilcode, model.soils);
+            W += polygon.area() * soil.y_dry;           
+        }
+        for(SoilPolygon spg : soilpolygons_below_pl){
+            h2d::CPolyline polygon = h2d::CPolyline(spg.points);
+            Soil soil = get_soil(spg.soilcode, model.soils);
+            W += polygon.area() * soil.y_sat;            
+        }
 
-        //     polygon = surface_points + [(x2, z2), (x3, z3), (x1, z1)]
+        cout << "base_alpha              : " << base_alpha << endl;
+        cout << "b                       : " << b << endl;
+        cout << "base_L                  : " << base_L << endl;
+        cout << "u                       : " << u << endl;
+        cout << "W                       : " << W << endl;
 
-        //     (
-        //         soilpolygons_above_phreatic_layer,
-        //         soilpolygons_below_phreatic_layer,
-        //     ) = self.calculation_model.soilprofile2.get_slice( # dit moet met clipper
-        //         polygon, self.calculation_model.phreatic_line
-        //     )
+        // soil at the bottom of the slice
+        string soilcode = get_soil_at(x3, z3, model.soilpolygons);
+        Soil soil = get_soil(soilcode, model.soils);
 
-        //     base_alpha = math.atan2((mz - z3), (mx - x3)) - 0.5 * math.pi
-        //     b = x2 - x1  # width of the slice
-        //     base_L = b / math.cos(base_alpha)  # length at bottom of slice
-        //     u = self.calculation_model.u_at(x3, z3) # dit kun je makkelijk berekenen met de phreatic line
+        double c = soil.cohesion;
+        double phi = soil.friction_angle;
+        cout << "soilcode                : " << soilcode << endl;
+        cout << "c                       : " << c << endl;
+        cout << "phi                     : " << phi << endl;
 
-        //     # calculate weight
-        //     W = 0
-        //     for spg in soilpolygons_above_phreatic_layer:
-        //         soil = self.calculation_model.soilcollection.get(spg.soilcode)
-        //         W += spg.area * soil.y_dry
-        //     for spg in soilpolygons_below_phreatic_layer:
-        //         soil = self.calculation_model.soilcollection.get(spg.soilcode)
-        //         W += spg.area * soil.y_sat
 
-        //     soilcode = self.calculation_model.soilprofile2.soilcode_at(x3, z3) # dit moet ook makkelijk kunnen
-        //     if soilcode == "":
-        //         raise ValueError(
-        //             f"No soil found at the given coordinates.. fix me please :-/"
-        //         )
-        //     soil = self.calculation_model.soilcollection.get(soilcode)
-        //     c = soil.cohesion
-        //     phi = soil.friction_angle
 
         //     slices.append(
         //         (i, b, W, -1.0 * base_alpha, base_L, u, c, (phi / 180.0) * math.pi)
@@ -362,7 +399,7 @@ BishopModel parse_bishop_model(const string &json)
     // create the placeholders for the result
     vector<SoilPolygon> soilpolygons_above_pl = {};
     vector<SoilPolygon> soilpolygons_below_pl = {};
-
+    
     // split the soilpolygons in those above and below the phreatic line, saves calculation time
     if (phreatic_line.size() > 0) // do we have a phreatic line?
     {
@@ -393,6 +430,7 @@ BishopModel parse_bishop_model(const string &json)
                         new_soilpolygon.points.push_back(p);
                     }
                     soilpolygons_above_pl.push_back(new_soilpolygon);
+                   
                 }
             }
         }
@@ -424,6 +462,7 @@ BishopModel parse_bishop_model(const string &json)
                         new_soilpolygon.points.push_back(p);
                     }
                     soilpolygons_below_pl.push_back(new_soilpolygon);
+                    
                 }
             }
             int j = 1;
@@ -434,11 +473,13 @@ BishopModel parse_bishop_model(const string &json)
         for (SoilPolygon spg : soilpolygons)
         {
             soilpolygons_above_pl.push_back(spg);
+            
         }
     }
 
     return BishopModel{
         soils,
+        soilpolygons,
         soilpolygons_above_pl,
         soilpolygons_below_pl,
         bishop_search_grid,
