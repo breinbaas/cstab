@@ -104,6 +104,7 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
     }
 
     // slices = []
+    // FOR EACH SLICE
     for (int i = 1; i < slice_coordinates.size(); i++)
     {
         double x1 = slice_coordinates[i - 1];                        // left side of the slice
@@ -113,108 +114,144 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
         double z2 = mz - sqrt(pow(radius, 2.0) - pow(mx - x2, 2.0)); // z value at bottom right of the slice
         double z3 = mz - sqrt(pow(radius, 2.0) - pow(mx - x3, 2.0)); // z value at bottom mid of the slice
 
+        cout << "SLICE " << i << endl;
+        cout << "x slice left            : " << x1 << endl;
+        cout << "x slice middle          : " << x3 << endl;
+        cout << "x slice right           : " << x2 << endl;
+        cout << "bottom slice left       : " << z1 << endl;
+        cout << "bottom slice middle     : " << z3 << endl;
+        cout << "bottom slice right      : " << z2 << endl;
+
         // ready to create the slice polygon (clockwise)
         double arr[] = {x1, top, x2, top, x2, z2, x3, z3, x1, z1};
-        string s_cut_slice;
-        for (double d : arr)
-        {
-            s_cut_slice += to_string(d) + " ";
-        }
-
-        PathsD cut_slice;
-        cut_slice.push_back(MakePathD(s_cut_slice));
+        vector<h2d::Point2d> slice_points = {h2d::Point2d(x1, top), h2d::Point2d(x2, top), h2d::Point2d(x2, z2), h2d::Point2d(x3, z3), h2d::Point2d(x1, z1)};
+        PathsD cut_slice = h2dpoints_to_pathsd(slice_points);
 
         // now get all the intersections with the soilpolygons above the phreatic line
+        // GET ALL SOILPOLYGONS THAT INTERSECT WITH THE SLICE
+        vector<SoilPolygon> soilpolygons_above_pl = {};
         for (SoilPolygon spg : model.soilpolygons_above_pl)
         {
-            PathsD p = soilpolygon_to_pathsd(spg);
+            PathsD polygon = soilpolygon_to_pathsd(spg);
+            PathsD solution = Intersect(cut_slice, polygon, FillRule::NonZero);
+
+            if (solution.size() > 0)
+            {
+                for (PathD path : solution)
+                {
+                    SoilPolygon new_soilpolygon = {};
+                    new_soilpolygon.soilcode = spg.soilcode;
+                    for (PointD p : path)
+                    {
+                        new_soilpolygon.points.push_back(p);
+                    }
+                    soilpolygons_above_pl.push_back(new_soilpolygon);
+                }
+            }
         }
 
-        // cout << "x slice left            : " << x1 << endl;
-        // cout << "x slice middle          : " << x3 << endl;
-        // cout << "x slice right           : " << x2 << endl;
-        // cout << "bottom slice left       : " << z1 << endl;
-        // cout << "bottom slice middle     : " << z3 << endl;
-        // cout << "bottom slice right      : " << z2 << endl;
+        vector<SoilPolygon> soilpolygons_below_pl = {};
+        for (SoilPolygon spg : model.soilpolygons_below_pl)
+        {
+            PathsD polygon = soilpolygon_to_pathsd(spg);
+            PathsD solution = Intersect(cut_slice, polygon, FillRule::NonZero);
+
+            if (solution.size() > 0)
+            {
+                for (PathD path : solution)
+                {
+                    SoilPolygon new_soilpolygon = {};
+                    new_soilpolygon.soilcode = spg.soilcode;
+                    for (PointD p : path)
+                    {
+                        new_soilpolygon.points.push_back(p);
+                    }
+                    soilpolygons_below_pl.push_back(new_soilpolygon);
+                }
+            }
+        }
+
+        cout << "number of soilpolygons above pl: " << soilpolygons_above_pl.size() << endl;
+        cout << "number of soilpolygons below pl: " << soilpolygons_below_pl.size() << endl;
+
+        int j = 1;
+
+        //     surface_points = (
+        //         self.calculation_model.soilprofile2.get_surface_within_limits(x1, x2) # als je de surface hebt moet dit makkelijk in cpp kunnen
+        //     )
+
+        //     polygon = surface_points + [(x2, z2), (x3, z3), (x1, z1)]
+
+        //     (
+        //         soilpolygons_above_phreatic_layer,
+        //         soilpolygons_below_phreatic_layer,
+        //     ) = self.calculation_model.soilprofile2.get_slice( # dit moet met clipper
+        //         polygon, self.calculation_model.phreatic_line
+        //     )
+
+        //     base_alpha = math.atan2((mz - z3), (mx - x3)) - 0.5 * math.pi
+        //     b = x2 - x1  # width of the slice
+        //     base_L = b / math.cos(base_alpha)  # length at bottom of slice
+        //     u = self.calculation_model.u_at(x3, z3) # dit kun je makkelijk berekenen met de phreatic line
+
+        //     # calculate weight
+        //     W = 0
+        //     for spg in soilpolygons_above_phreatic_layer:
+        //         soil = self.calculation_model.soilcollection.get(spg.soilcode)
+        //         W += spg.area * soil.y_dry
+        //     for spg in soilpolygons_below_phreatic_layer:
+        //         soil = self.calculation_model.soilcollection.get(spg.soilcode)
+        //         W += spg.area * soil.y_sat
+
+        //     soilcode = self.calculation_model.soilprofile2.soilcode_at(x3, z3) # dit moet ook makkelijk kunnen
+        //     if soilcode == "":
+        //         raise ValueError(
+        //             f"No soil found at the given coordinates.. fix me please :-/"
+        //         )
+        //     soil = self.calculation_model.soilcollection.get(soilcode)
+        //     c = soil.cohesion
+        //     phi = soil.friction_angle
+
+        //     slices.append(
+        //         (i, b, W, -1.0 * base_alpha, base_L, u, c, (phi / 180.0) * math.pi)
+        //     )
+
+        // M = np.array(slices)
+        // # M[:,0] = index
+        // # M[:,1] = b (width of slice)
+        // # M[:,2] = W (weight of slice)
+        // # M[:,3] = alpha
+        // # M[:,4] = L
+        // # M[:,5] = u
+        // # M[:,6] = c
+        // # M[:,7] = phi (in radians)
+        // denom = np.sum(M[:, 2] * np.sin(M[:, 3]))
+        // cl = np.sum(M[:, 6] * M[:, 4])
+
+        // # assume first sf
+        // sf = 1.0
+
+        // iteration = 0
+        // while 1:
+        //     N1 = M[:, 6] * M[:, 4] * np.sin(M[:, 3])
+        //     N2 = M[:, 5] * M[:, 4] * np.sin(M[:, 3] * np.tan(M[:, 7]))
+        //     N3 = np.cos(M[:, 3]) + (np.sin(M[:, 3]) * np.tan(M[:, 7])) / sf
+        //     N = (M[:, 2] - (N1 - N2) / sf) / N3
+
+        //     fos = (cl + np.sum((N - M[:, 5] * M[:, 4]) * np.tan(M[:, 7]))) / denom
+
+        //     if abs(sf - fos) < 0.01:
+        //         break
+
+        //     sf = (sf + fos) / 2.0
+
+        //     iteration += 1
+        //     if iteration > 20:
+        //         return None
+        //         # raise ValueError(f"Calculation not converging...")
+
+        // return sf
     }
-
-    int j = 1;
-
-    //     surface_points = (
-    //         self.calculation_model.soilprofile2.get_surface_within_limits(x1, x2) # als je de surface hebt moet dit makkelijk in cpp kunnen
-    //     )
-
-    //     polygon = surface_points + [(x2, z2), (x3, z3), (x1, z1)]
-
-    //     (
-    //         soilpolygons_above_phreatic_layer,
-    //         soilpolygons_below_phreatic_layer,
-    //     ) = self.calculation_model.soilprofile2.get_slice( # dit moet met clipper
-    //         polygon, self.calculation_model.phreatic_line
-    //     )
-
-    //     base_alpha = math.atan2((mz - z3), (mx - x3)) - 0.5 * math.pi
-    //     b = x2 - x1  # width of the slice
-    //     base_L = b / math.cos(base_alpha)  # length at bottom of slice
-    //     u = self.calculation_model.u_at(x3, z3) # dit kun je makkelijk berekenen met de phreatic line
-
-    //     # calculate weight
-    //     W = 0
-    //     for spg in soilpolygons_above_phreatic_layer:
-    //         soil = self.calculation_model.soilcollection.get(spg.soilcode)
-    //         W += spg.area * soil.y_dry
-    //     for spg in soilpolygons_below_phreatic_layer:
-    //         soil = self.calculation_model.soilcollection.get(spg.soilcode)
-    //         W += spg.area * soil.y_sat
-
-    //     soilcode = self.calculation_model.soilprofile2.soilcode_at(x3, z3) # dit moet ook makkelijk kunnen
-    //     if soilcode == "":
-    //         raise ValueError(
-    //             f"No soil found at the given coordinates.. fix me please :-/"
-    //         )
-    //     soil = self.calculation_model.soilcollection.get(soilcode)
-    //     c = soil.cohesion
-    //     phi = soil.friction_angle
-
-    //     slices.append(
-    //         (i, b, W, -1.0 * base_alpha, base_L, u, c, (phi / 180.0) * math.pi)
-    //     )
-
-    // M = np.array(slices)
-    // # M[:,0] = index
-    // # M[:,1] = b (width of slice)
-    // # M[:,2] = W (weight of slice)
-    // # M[:,3] = alpha
-    // # M[:,4] = L
-    // # M[:,5] = u
-    // # M[:,6] = c
-    // # M[:,7] = phi (in radians)
-    // denom = np.sum(M[:, 2] * np.sin(M[:, 3]))
-    // cl = np.sum(M[:, 6] * M[:, 4])
-
-    // # assume first sf
-    // sf = 1.0
-
-    // iteration = 0
-    // while 1:
-    //     N1 = M[:, 6] * M[:, 4] * np.sin(M[:, 3])
-    //     N2 = M[:, 5] * M[:, 4] * np.sin(M[:, 3] * np.tan(M[:, 7]))
-    //     N3 = np.cos(M[:, 3]) + (np.sin(M[:, 3]) * np.tan(M[:, 7])) / sf
-    //     N = (M[:, 2] - (N1 - N2) / sf) / N3
-
-    //     fos = (cl + np.sum((N - M[:, 5] * M[:, 4]) * np.tan(M[:, 7]))) / denom
-
-    //     if abs(sf - fos) < 0.01:
-    //         break
-
-    //     sf = (sf + fos) / 2.0
-
-    //     iteration += 1
-    //     if iteration > 20:
-    //         return None
-    //         # raise ValueError(f"Calculation not converging...")
-
-    // return sf
 }
 
 /*
@@ -358,7 +395,6 @@ BishopModel parse_bishop_model(const string &json)
                     soilpolygons_above_pl.push_back(new_soilpolygon);
                 }
             }
-            int j = 1;
         }
 
         // polygon below the phreatic line
@@ -423,7 +459,7 @@ vector<double> calculate_bishop() // will become calculate_bishop(const string &
     BishopModel model = parse_bishop_model(json);
 
     // DEBUG
-    model.print();
+    // model.print();
     // END DEBUG
 
     double x = model.bishop_search_grid.left;
@@ -481,6 +517,7 @@ vector<double> calculate_bishop() // will become calculate_bishop(const string &
 
 int main()
 {
+    cout << "hi" << endl;
     vector<double> sfs = calculate_bishop(); // will become calculate_bishop("jsonstring");
 }
 
