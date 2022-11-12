@@ -1,4 +1,0 @@
-/home/breinbaas/development/cpp/cstab/build/CMakeFiles/rebuild_cache.dir
-/home/breinbaas/development/cpp/cstab/build/CMakeFiles/edit_cache.dir
-/home/breinbaas/development/cpp/cstab/build/CMakeFiles/pstab.dir
-/home/breinbaas/development/cpp/cstab/build/CMakeFiles/clipper2lib.dir

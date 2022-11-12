@@ -1,2 +1,0 @@
-/usr/bin/ar qc libclipper2lib.a CMakeFiles/clipper2lib.dir/clipper2/clipper.engine.cpp.o
-/usr/bin/ranlib libclipper2lib.a

@@ -1,1 +1,0 @@
-/usr/bin/c++  -pthread -rdynamic CMakeFiles/pstab.dir/main.cpp.o -o pstab  libclipper2lib.a 
