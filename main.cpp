@@ -2,7 +2,6 @@
 #include "clipper2/clipper.h"
 #include "rapidjson/document.h"
 #include "homog2d/homog2d.h"
-#include "NumCpp.hpp"
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -142,7 +141,16 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
         slice_coordinates.push_back(x);
     }
 
-    // slices = []
+
+    // variables to store during calculation
+    vector<int> M0 = {};    // index
+    vector<double> M1 = {}; // b (width of slice)
+    vector<double> M2 = {}; // W (weight of slice)
+    vector<double> M3 = {}; // alpha
+    vector<double> M4 = {}; // L    
+    vector<double> M5 = {}; // u
+    vector<double> M6 = {}; // c
+    vector<double> M7 = {}; // phi
     // FOR EACH SLICE
     for (int i = 1; i < slice_coordinates.size(); i++)
     {
@@ -247,48 +255,63 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
         cout << "c                       : " << c << endl;
         cout << "phi                     : " << phi << endl;
 
-
-
-        //     slices.append(
-        //         (i, b, W, -1.0 * base_alpha, base_L, u, c, (phi / 180.0) * math.pi)
-        //     )
-
-        // M = np.array(slices)
-        // # M[:,0] = index
-        // # M[:,1] = b (width of slice)
-        // # M[:,2] = W (weight of slice)
-        // # M[:,3] = alpha
-        // # M[:,4] = L
-        // # M[:,5] = u
-        // # M[:,6] = c
-        // # M[:,7] = phi (in radians)
-        // denom = np.sum(M[:, 2] * np.sin(M[:, 3]))
-        // cl = np.sum(M[:, 6] * M[:, 4])
-
-        // # assume first sf
-        // sf = 1.0
-
-        // iteration = 0
-        // while 1:
-        //     N1 = M[:, 6] * M[:, 4] * np.sin(M[:, 3])
-        //     N2 = M[:, 5] * M[:, 4] * np.sin(M[:, 3] * np.tan(M[:, 7]))
-        //     N3 = np.cos(M[:, 3]) + (np.sin(M[:, 3]) * np.tan(M[:, 7])) / sf
-        //     N = (M[:, 2] - (N1 - N2) / sf) / N3
-
-        //     fos = (cl + np.sum((N - M[:, 5] * M[:, 4]) * np.tan(M[:, 7]))) / denom
-
-        //     if abs(sf - fos) < 0.01:
-        //         break
-
-        //     sf = (sf + fos) / 2.0
-
-        //     iteration += 1
-        //     if iteration > 20:
-        //         return None
-        //         # raise ValueError(f"Calculation not converging...")
-
-        // return sf
+        M0.push_back(i);
+        M1.push_back(b);
+        M2.push_back(W);
+        M3.push_back(-1.0 * base_alpha);
+        M4.push_back(base_L);
+        M5.push_back(u);
+        M6.push_back(c);
+        M7.push_back((phi / 180.0) * PI);
     }
+
+    double denom = 0.0;
+    for(int i=0; i<M2.size(); i++){
+        denom += M2[i] * sin(M3[i]);
+    }
+    double cl = 0.0;
+    for(int i=0; i<M6.size(); i++){
+        cl += M6[i] * M4[i];
+    }
+
+    double isf = 1.0;
+    int iteration = 0;
+
+    while(1){
+        if(iteration >= MAX_I || isnan(isf)){
+            isf = -9999.0;
+            break;
+        }
+
+        vector<double> N = {};
+        vector<double> N1 = {};
+        vector<double> N2 = {};
+        vector<double> N3 = {};
+
+        for(int i=0; i<M6.size(); i++){
+            N1.push_back(M6[i] * M4[i] * sin(M3[i]));
+            N2.push_back(M5[i] * M4[i] * sin(M3[i]) * tan(M7[i]));
+            N3.push_back(cos(M3[i]) + (sin(M3[i]) * tan(M7[i])) / isf);
+            N.push_back((M2[i] - (N1[i] - N2[i]) / isf) / N3[i]);
+
+            double d = 0.0;
+            for(int i=0; i<M1.size();i++){
+                d += (N[i] - M5[i] * M4[i]) * tan(M7[i]);
+            }
+
+            double fos = (cl + d) / denom;
+            if(abs(isf - fos) < 0.01) break;
+
+            isf = (isf + fos) / 2.0;
+        }
+
+        cout << "isf                     : " << isf << endl;
+        ++iteration;
+    }
+
+    cout << "iteration               : " << iteration << endl;
+    cout << "sf                      : " << isf << endl;
+    *sf = isf;
 }
 
 /*
