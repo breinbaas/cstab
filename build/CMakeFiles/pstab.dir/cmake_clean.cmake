@@ -1,9 +1,6 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/pstab.dir/main.cpp.obj"
-  "CMakeFiles/pstab.dir/main.cpp.obj.d"
-  "libpstab.dll.a"
-  "pstab.exe"
-  "pstab.exe.manifest"
+  "CMakeFiles/pstab.dir/main.cpp.o"
+  "pstab"
   "pstab.pdb"
 )
 

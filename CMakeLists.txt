@@ -1,3 +1,4 @@
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 cmake_minimum_required(VERSION 3.1)
 project(pstab 
     VERSION 0.1

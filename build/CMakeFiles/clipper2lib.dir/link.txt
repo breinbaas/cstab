@@ -1,2 +1,2 @@
-C:/msys64/mingw64/bin/ar.exe qc libclipper2lib.a CMakeFiles/clipper2lib.dir/clipper2/clipper.engine.cpp.obj
-C:/msys64/mingw64/bin/ranlib.exe libclipper2lib.a
+/usr/bin/ar qc libclipper2lib.a CMakeFiles/clipper2lib.dir/clipper2/clipper.engine.cpp.o
+/usr/bin/ranlib libclipper2lib.a

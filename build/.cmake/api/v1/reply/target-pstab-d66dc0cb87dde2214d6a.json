@@ -2,10 +2,7 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "pstab.exe"
-		},
-		{
-			"path" : "pstab.pdb"
+			"path" : "pstab"
 		}
 	],
 	"backtrace" : 1,
@@ -28,13 +25,13 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 10,
+				"line" : 11,
 				"parent" : 0
 			},
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 11,
+				"line" : 12,
 				"parent" : 0
 			}
 		]
@@ -45,14 +42,14 @@
 			"compileCommandFragments" : 
 			[
 				{
-					"fragment" : "-g"
+					"fragment" : " -pthread"
 				}
 			],
 			"includes" : 
 			[
 				{
 					"backtrace" : 2,
-					"path" : "D:/Data/Development/cpp/pstab/clipper2"
+					"path" : "/home/breinbaas/development/cpp/cstab/clipper2"
 				}
 			],
 			"language" : "CXX",
@@ -75,27 +72,23 @@
 		"commandFragments" : 
 		[
 			{
-				"fragment" : "-g",
+				"fragment" : "-pthread",
 				"role" : "flags"
 			},
 			{
-				"fragment" : "",
+				"fragment" : "-rdynamic",
 				"role" : "flags"
 			},
 			{
 				"backtrace" : 2,
 				"fragment" : "libclipper2lib.a",
 				"role" : "libraries"
-			},
-			{
-				"fragment" : "-lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32",
-				"role" : "libraries"
 			}
 		],
 		"language" : "CXX"
 	},
 	"name" : "pstab",
-	"nameOnDisk" : "pstab.exe",
+	"nameOnDisk" : "pstab",
 	"paths" : 
 	{
 		"build" : ".",

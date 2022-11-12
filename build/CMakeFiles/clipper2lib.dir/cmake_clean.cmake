@@ -1,6 +1,5 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/clipper2lib.dir/clipper2/clipper.engine.cpp.obj"
-  "CMakeFiles/clipper2lib.dir/clipper2/clipper.engine.cpp.obj.d"
+  "CMakeFiles/clipper2lib.dir/clipper2/clipper.engine.cpp.o"
   "libclipper2lib.a"
   "libclipper2lib.pdb"
 )

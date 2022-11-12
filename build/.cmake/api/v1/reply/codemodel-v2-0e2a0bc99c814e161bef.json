@@ -6,7 +6,6 @@
 			[
 				{
 					"build" : ".",
-					"jsonFile" : "directory-.-Debug-d0094a50bb2071803777.json",
 					"minimumCMakeVersion" : 
 					{
 						"string" : "3.1"
@@ -20,7 +19,7 @@
 					]
 				}
 			],
-			"name" : "Debug",
+			"name" : "",
 			"projects" : 
 			[
 				{
@@ -41,14 +40,14 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "clipper2lib::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-clipper2lib-Debug-1573d2330f188bb5e7c4.json",
+					"jsonFile" : "target-clipper2lib-9ce9fbacf2d1103c70ac.json",
 					"name" : "clipper2lib",
 					"projectIndex" : 0
 				},
 				{
 					"directoryIndex" : 0,
 					"id" : "pstab::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-pstab-Debug-21509182da5b6a5475fb.json",
+					"jsonFile" : "target-pstab-d66dc0cb87dde2214d6a.json",
 					"name" : "pstab",
 					"projectIndex" : 0
 				}
@@ -58,12 +57,12 @@
 	"kind" : "codemodel",
 	"paths" : 
 	{
-		"build" : "D:/Data/Development/cpp/pstab/build",
-		"source" : "D:/Data/Development/cpp/pstab"
+		"build" : "/home/breinbaas/development/cpp/cstab/build",
+		"source" : "/home/breinbaas/development/cpp/cstab"
 	},
 	"version" : 
 	{
 		"major" : 2,
-		"minor" : 4
+		"minor" : 1
 	}
 }

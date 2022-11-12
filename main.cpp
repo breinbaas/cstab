@@ -8,7 +8,7 @@
 #include <iostream>
 #include <vector>
 #include <array>
-#include <thread>
+#include <pthread.h>
 #include <future>
 
 #include <chrono> // temporay to allow performance measurements
