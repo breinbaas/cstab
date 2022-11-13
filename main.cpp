@@ -293,17 +293,18 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
             N2.push_back(M5[i] * M4[i] * sin(M3[i]) * tan(M7[i]));
             N3.push_back(cos(M3[i]) + (sin(M3[i]) * tan(M7[i])) / isf);
             N.push_back((M2[i] - (N1[i] - N2[i]) / isf) / N3[i]);
-
-            double d = 0.0;
-            for(int i=0; i<M1.size();i++){
-                d += (N[i] - M5[i] * M4[i]) * tan(M7[i]);
-            }
-
-            double fos = (cl + d) / denom;
-            if(abs(isf - fos) < 0.01) break;
-
-            isf = (isf + fos) / 2.0;
         }
+
+        double d = 0.0;
+        for(int i=0; i<M1.size();i++){
+            d += (N[i] - M5[i] * M4[i]) * tan(M7[i]);
+        }
+
+        double fos = (cl + d) / denom;
+        if(abs(isf - fos) < 0.01) break;
+
+        isf = (isf + fos) / 2.0;
+        
 
         cout << "isf                     : " << isf << endl;
         ++iteration;
