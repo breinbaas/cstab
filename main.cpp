@@ -88,16 +88,6 @@ string get_soil_at(const double x, const double z, const vector<SoilPolygon> &so
     throw std::invalid_argument("point not in polygons or on the edge of a polygon");
 }
 
-// double arr[] = {x1, top, x2, top, x2, z2, x3, z3, x1, z1};
-//         string s_cut_slice;
-//         for (double d : arr)
-//         {
-//             s_cut_slice += to_string(d) + " ";
-//         }
-
-//         PathsD cut_slice;
-//         cut_slice.push_back(MakePathD(s_cut_slice));
-
 /*
 This function will calculate the Bishop safety factor for the given
 model, centerpoint of the slope circle and z coordinate of the tangent line
@@ -136,8 +126,8 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
     double entry_point = pts[0].getX();
     double exit_point = pts[1].getX();
 
-    cout << "x coordinate entry point: " << entry_point << endl;
-    cout << "x coordinate exit point : " << exit_point << endl;
+    // cout << "x coordinate entry point: " << entry_point << endl;
+    // cout << "x coordinate exit point : " << exit_point << endl;
 
     // # divide the space between the entry and exit point into evenly distributed points
     vector<double> slice_coordinates = {};
@@ -167,14 +157,14 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
         double z2 = mz - sqrt(pow(radius, 2.0) - pow(mx - x2, 2.0)); // z value at bottom right of the slice
         double z3 = mz - sqrt(pow(radius, 2.0) - pow(mx - x3, 2.0)); // z value at bottom mid of the slice
 
-        cout << endl;
-        cout << "SLICE " << i << endl;
-        cout << "x slice left            : " << x1 << endl;
-        cout << "x slice middle          : " << x3 << endl;
-        cout << "x slice right           : " << x2 << endl;
-        cout << "bottom slice left       : " << z1 << endl;
-        cout << "bottom slice middle     : " << z3 << endl;
-        cout << "bottom slice right      : " << z2 << endl;
+        // cout << endl;
+        // cout << "SLICE " << i << endl;
+        // cout << "x slice left            : " << x1 << endl;
+        // cout << "x slice middle          : " << x3 << endl;
+        // cout << "x slice right           : " << x2 << endl;
+        // cout << "bottom slice left       : " << z1 << endl;
+        // cout << "bottom slice middle     : " << z3 << endl;
+        // cout << "bottom slice right      : " << z2 << endl;
 
         // ready to create the slice polygon (clockwise)
         double arr[] = {x1, top, x2, top, x2, z2, x3, z3, x1, z1};
@@ -225,8 +215,8 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
             }
         }
 
-        cout << "#soilpolygons above pl  : " << soilpolygons_above_pl.size() << endl;
-        cout << "#soilpolygons below pl  : " << soilpolygons_below_pl.size() << endl;
+        // cout << "#soilpolygons above pl  : " << soilpolygons_above_pl.size() << endl;
+        // cout << "#soilpolygons below pl  : " << soilpolygons_below_pl.size() << endl;
 
         double base_alpha = atan2((mz - z3), (mx - x3)) - 0.5 * PI;
         double b = x2 - x1;                           // width of the slice
@@ -247,11 +237,11 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
             W += polygon.area() * soil.y_sat;
         }
 
-        cout << "base_alpha              : " << base_alpha << endl;
-        cout << "b                       : " << b << endl;
-        cout << "base_L                  : " << base_L << endl;
-        cout << "u                       : " << u << endl;
-        cout << "W                       : " << W << endl;
+        // cout << "base_alpha              : " << base_alpha << endl;
+        // cout << "b                       : " << b << endl;
+        // cout << "base_L                  : " << base_L << endl;
+        // cout << "u                       : " << u << endl;
+        // cout << "W                       : " << W << endl;
 
         // soil at the bottom of the slice
         string soilcode = get_soil_at(x3, z3, model.soilpolygons);
@@ -259,9 +249,9 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
 
         double c = soil.cohesion;
         double phi = soil.friction_angle;
-        cout << "soilcode                : " << soilcode << endl;
-        cout << "c                       : " << c << endl;
-        cout << "phi                     : " << phi << endl;
+        // cout << "soilcode                : " << soilcode << endl;
+        // cout << "c                       : " << c << endl;
+        // cout << "phi                     : " << phi << endl;
 
         M0.push_back(i);
         M1.push_back(b);
@@ -278,13 +268,13 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
     {
         denom += M2[i] * sin(M3[i]);
     }
-    cout << "denom                   : " << denom << endl;
+    // cout << "denom                   : " << denom << endl;
     double cl = 0.0;
     for (int i = 0; i < M6.size(); i++)
     {
         cl += M6[i] * M4[i];
     }
-    cout << "cl                      : " << cl << endl;
+    // cout << "cl                      : " << cl << endl;
 
     double isf = 1.0;
     int iteration = 0;
@@ -302,13 +292,13 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
         vector<double> N2 = {};
         vector<double> N3 = {};
 
-        cout << "M" << endl;
-        for (int i = 0; i < M6.size(); i++)
-        {
-            cout << M0[i] << " | " << M1[i] << " | " << M2[i] << " | " << M3[i] << " | " << M4[i] << " | " << M5[i] << " | " << M6[i] << " | " << M7[i] << endl;
-        }
+        // cout << "M" << endl;
+        // for (int i = 0; i < M6.size(); i++)
+        // {
+        //     cout << M0[i] << " | " << M1[i] << " | " << M2[i] << " | " << M3[i] << " | " << M4[i] << " | " << M5[i] << " | " << M6[i] << " | " << M7[i] << endl;
+        // }
 
-        cout << "N" << endl;
+        // cout << "N" << endl;
         for (int i = 0; i < M6.size(); i++)
         {
             // cout << M5[i] << " || " << M4[i] << " || " << M3[i] << " || " << M7[i] << endl;
@@ -317,8 +307,7 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
             N3.push_back(cos(M3[i]) + (sin(M3[i]) * tan(M7[i])) / isf);
             N.push_back((M2[i] - (N1[i] - N2[i]) / isf) / N3[i]);
 
-            /// cout << M0[i] << " | " << M1[i] << " | " << M2[i] << " | " << M3[i] << " | " << M4[i] << " | " << M5[i] << " | " << M6[i] << " | " << M7[i] << " | "
-            cout << i << " | " << N[i] << " | " << N1[i] << " | " << N2[i] << " | " << N3[i] << " | " << endl;
+            // cout << i << " | " << N[i] << " | " << N1[i] << " | " << N2[i] << " | " << N3[i] << " | " << endl;
         }
 
         double d = 0.0;
@@ -326,23 +315,22 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
         {
             d += (N[i] - M5[i] * M4[i]) * tan(M7[i]);
         }
-        cout << "d                       : " << d << endl;
+        // cout << "d                       : " << d << endl;
 
         double fos = (cl + d) / denom;
-        cout << "iteration               : " << iteration << endl;
-        cout << "fos                     : " << fos << endl;
-        if (abs(isf - fos) < 0.01)
+        // cout << "iteration               : " << iteration << endl;
+        // cout << "fos                     : " << fos << endl;
+        if (abs(isf - fos) < 0.005)
             break;
 
         isf = (isf + fos) / 2.0;
 
-        cout << "isf                     : " << isf << endl;
+        // cout << "isf                     : " << isf << endl;
         ++iteration;
-        break;
     }
 
-    cout << "iteration               : " << iteration << endl;
-    cout << "sf                      : " << isf << endl;
+    // cout << "iteration               : " << iteration << endl;
+    // cout << "sf                      : " << isf << endl;
     *sf = isf;
 }
 
@@ -574,77 +562,34 @@ vector<double> calculate_bishop() // will become calculate_bishop(const string &
         {
             for (int nt = 0; nt < NUM_T; ++nt)
             {
-                // double x = model.bishop_search_grid.left + nx * dx;
-                // double z = model.bishop_search_grid.bottom + nz * dz;
-                // double t = model.bishop_search_grid.tangents_bottom + nt * dt;
-
-                double x = 23.5;
-                double y = 3.8;
-                double t = -3.7;
-
+                double x = model.bishop_search_grid.left + nx * dx;
+                double z = model.bishop_search_grid.bottom + nz * dz;
+                double t = model.bishop_search_grid.tangents_bottom + nt * dt;
                 threads[i] = thread(sf_bishop, i, model, x, z, t, &sfs[i]);
-                threads[i].join(); // remove this to enable threading again
-
                 ++i;
-
-                nt = 100; // remove this to allow all situations to be calculated
-                nz = 100;
-                nx = 100;
             }
         }
     }
 
-    // for (auto &t : threads) // uncomment this to add threading again
-    // {
-    //     t.join();
-    // }
+    for (auto &t : threads) // uncomment this to add threading again
+    {
+        t.join();
+    }
 
     // temporary code to measure performance
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
     std::cout << "Elapsed time " << elapsed.count() << " ms\n";
 
-    // for (auto &sf : sfs)
-    // {
-    //     std::cout << "sf =" << sf << endl;
-    // }
+    /*for (auto &sf : sfs)
+    {
+        std::cout << "sf =" << sf << endl;
+    }*/
 
     return {};
 }
 
 int main()
 {
-    cout << "hi" << endl;
     vector<double> sfs = calculate_bishop(); // will become calculate_bishop("jsonstring");
 }
-
-// THE NEXT CODE IS COMMENTED SINCE I USE THIS AS A CPP PROJECT FIRST
-// ONCE THIS IS DONE IT WILL BE PART OF THE PYTHON LIBRARY CODE
-// namespace py = pybind11;
-
-// PYBIND11_MODULE(pstab, m)
-// {
-//     m.doc() = R"pbdoc(
-//         Pybind11 example plugin
-//         -----------------------
-
-//         .. currentmodule:: pstab
-
-//         .. autosummary::
-//            :toctree: _generate
-
-//            bishop
-//     )pbdoc";
-
-//     m.def("bishop", &bishop, R"pbdoc(
-//         Calculate the Bishop safety factor from the given model
-
-//         Some other explanation about the bishop function.
-//     )pbdoc");
-
-// #ifdef VERSION_INFO
-//     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
-// #else
-//     m.attr("__version__") = "dev";
-// #endif
-// }
