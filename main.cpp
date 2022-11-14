@@ -24,8 +24,6 @@ using namespace std;
 using namespace rapidjson;
 using namespace Clipper2Lib;
 
-
-
 PathsD h2dpoints_to_pathsd(const vector<h2d::Point2d> &points)
 {
     string s;
@@ -47,38 +45,47 @@ PathsD soilpolygon_to_pathsd(SoilPolygon &soilpolygon)
 }
 
 // calculation of water pressure at the given x, z location
-double u_at(double x, double z, const h2d::OPolyline &phreatic_line){
-    for(int i=1; i<phreatic_line.size(); i++){
-        if(phreatic_line.getPoint(i-1).getX() <= x <= phreatic_line.getPoint(i).getX()){
-            double x1 = phreatic_line.getPoint(i-1).getX();
+double u_at(double x, double z, const h2d::OPolyline &phreatic_line)
+{
+    for (int i = 1; i < phreatic_line.size(); i++)
+    {
+        if (phreatic_line.getPoint(i - 1).getX() <= x && x <= phreatic_line.getPoint(i).getX())
+        {
+            double x1 = phreatic_line.getPoint(i - 1).getX();
             double x2 = phreatic_line.getPoint(i).getX();
-            double z1 = phreatic_line.getPoint(i-1).getY();
+            double z1 = phreatic_line.getPoint(i - 1).getY();
             double z2 = phreatic_line.getPoint(i).getY();
-            double zt = z1 + (x-x1)/(x2-x1) * (z2-z1);
+            double zt = z1 + (x - x1) / (x2 - x1) * (z2 - z1);
             return (zt - z) * VOL_WEIGHT_WATER;
         }
     }
     return 0.0;
 }
 
-Soil get_soil(const string &soilcode, const vector<Soil> soils){
-    for(Soil soil : soils){
-        if(soil.code.compare(soilcode)==0){
+Soil get_soil(const string &soilcode, const vector<Soil> soils)
+{
+    for (Soil soil : soils)
+    {
+        if (soil.code.compare(soilcode) == 0)
+        {
             return soil;
         }
     }
-    throw std::invalid_argument( "received unknown soilcode");
+    throw std::invalid_argument("received unknown soilcode");
 }
 
-string get_soil_at(const double x, const double z, const vector<SoilPolygon> &soilpoylgons){
-    for(SoilPolygon spg: soilpoylgons){
-        
-        h2d::Point2d pt = h2d::Point2d(x,z);
-        if(pt.isInside(h2d::CPolyline(spg.points))){
+string get_soil_at(const double x, const double z, const vector<SoilPolygon> &soilpoylgons)
+{
+    for (SoilPolygon spg : soilpoylgons)
+    {
+
+        h2d::Point2d pt = h2d::Point2d(x, z);
+        if (pt.isInside(h2d::CPolyline(spg.points)))
+        {
             return spg.soilcode;
         }
     }
-    throw std::invalid_argument( "point not in polygons or on the edge of a polygon");
+    throw std::invalid_argument("point not in polygons or on the edge of a polygon");
 }
 
 // double arr[] = {x1, top, x2, top, x2, z2, x3, z3, x1, z1};
@@ -141,13 +148,12 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
         slice_coordinates.push_back(x);
     }
 
-
     // variables to store during calculation
     vector<int> M0 = {};    // index
     vector<double> M1 = {}; // b (width of slice)
     vector<double> M2 = {}; // W (weight of slice)
     vector<double> M3 = {}; // alpha
-    vector<double> M4 = {}; // L    
+    vector<double> M4 = {}; // L
     vector<double> M5 = {}; // u
     vector<double> M6 = {}; // c
     vector<double> M7 = {}; // phi
@@ -223,20 +229,22 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
         cout << "#soilpolygons below pl  : " << soilpolygons_below_pl.size() << endl;
 
         double base_alpha = atan2((mz - z3), (mx - x3)) - 0.5 * PI;
-        double b = x2 - x1;  // width of the slice
-        double base_L = b / cos(base_alpha);  // length at bottom of slice
+        double b = x2 - x1;                           // width of the slice
+        double base_L = b / cos(base_alpha);          // length at bottom of slice
         double u = u_at(x3, z3, model.phreatic_line); // waterpressure
         double W = 0;
 
-        for(SoilPolygon spg : soilpolygons_above_pl){
+        for (SoilPolygon spg : soilpolygons_above_pl)
+        {
             h2d::CPolyline polygon = h2d::CPolyline(spg.points);
             Soil soil = get_soil(spg.soilcode, model.soils);
-            W += polygon.area() * soil.y_dry;           
+            W += polygon.area() * soil.y_dry;
         }
-        for(SoilPolygon spg : soilpolygons_below_pl){
+        for (SoilPolygon spg : soilpolygons_below_pl)
+        {
             h2d::CPolyline polygon = h2d::CPolyline(spg.points);
             Soil soil = get_soil(spg.soilcode, model.soils);
-            W += polygon.area() * soil.y_sat;            
+            W += polygon.area() * soil.y_sat;
         }
 
         cout << "base_alpha              : " << base_alpha << endl;
@@ -266,19 +274,25 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
     }
 
     double denom = 0.0;
-    for(int i=0; i<M2.size(); i++){
+    for (int i = 0; i < M2.size(); i++)
+    {
         denom += M2[i] * sin(M3[i]);
     }
+    cout << "denom                   : " << denom << endl;
     double cl = 0.0;
-    for(int i=0; i<M6.size(); i++){
+    for (int i = 0; i < M6.size(); i++)
+    {
         cl += M6[i] * M4[i];
     }
+    cout << "cl                      : " << cl << endl;
 
     double isf = 1.0;
     int iteration = 0;
 
-    while(1){
-        if(iteration >= MAX_I || isnan(isf)){
+    while (1)
+    {
+        if (iteration >= MAX_I || isnan(isf))
+        {
             isf = -9999.0;
             break;
         }
@@ -288,26 +302,43 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
         vector<double> N2 = {};
         vector<double> N3 = {};
 
-        for(int i=0; i<M6.size(); i++){
+        cout << "M" << endl;
+        for (int i = 0; i < M6.size(); i++)
+        {
+            cout << M0[i] << " | " << M1[i] << " | " << M2[i] << " | " << M3[i] << " | " << M4[i] << " | " << M5[i] << " | " << M6[i] << " | " << M7[i] << endl;
+        }
+
+        cout << "N" << endl;
+        for (int i = 0; i < M6.size(); i++)
+        {
+            // cout << M5[i] << " || " << M4[i] << " || " << M3[i] << " || " << M7[i] << endl;
             N1.push_back(M6[i] * M4[i] * sin(M3[i]));
             N2.push_back(M5[i] * M4[i] * sin(M3[i]) * tan(M7[i]));
             N3.push_back(cos(M3[i]) + (sin(M3[i]) * tan(M7[i])) / isf);
             N.push_back((M2[i] - (N1[i] - N2[i]) / isf) / N3[i]);
+
+            /// cout << M0[i] << " | " << M1[i] << " | " << M2[i] << " | " << M3[i] << " | " << M4[i] << " | " << M5[i] << " | " << M6[i] << " | " << M7[i] << " | "
+            cout << i << " | " << N[i] << " | " << N1[i] << " | " << N2[i] << " | " << N3[i] << " | " << endl;
         }
 
         double d = 0.0;
-        for(int i=0; i<M1.size();i++){
+        for (int i = 0; i < N.size(); i++)
+        {
             d += (N[i] - M5[i] * M4[i]) * tan(M7[i]);
         }
+        cout << "d                       : " << d << endl;
 
         double fos = (cl + d) / denom;
-        if(abs(isf - fos) < 0.01) break;
+        cout << "iteration               : " << iteration << endl;
+        cout << "fos                     : " << fos << endl;
+        if (abs(isf - fos) < 0.01)
+            break;
 
         isf = (isf + fos) / 2.0;
-        
 
         cout << "isf                     : " << isf << endl;
         ++iteration;
+        break;
     }
 
     cout << "iteration               : " << iteration << endl;
@@ -401,8 +432,8 @@ BishopModel parse_bishop_model(const string &json)
 
     // PARSE BISHOP SEARCH GRID
     Value &v_bishop_search_grid = document["bishop_search_grid"];
-    double left = v_bishop_search_grid["x_left"].GetDouble();
-    double bottom = v_bishop_search_grid["z_bottom"].GetDouble();
+    double left = v_bishop_search_grid["left"].GetDouble();
+    double bottom = v_bishop_search_grid["bottom"].GetDouble();
     double width = v_bishop_search_grid["width"].GetDouble();
     double height = v_bishop_search_grid["height"].GetDouble();
     double tangents_top = v_bishop_search_grid["tangents_top"].GetDouble();
@@ -423,7 +454,7 @@ BishopModel parse_bishop_model(const string &json)
     // create the placeholders for the result
     vector<SoilPolygon> soilpolygons_above_pl = {};
     vector<SoilPolygon> soilpolygons_below_pl = {};
-    
+
     // split the soilpolygons in those above and below the phreatic line, saves calculation time
     if (phreatic_line.size() > 0) // do we have a phreatic line?
     {
@@ -454,7 +485,6 @@ BishopModel parse_bishop_model(const string &json)
                         new_soilpolygon.points.push_back(p);
                     }
                     soilpolygons_above_pl.push_back(new_soilpolygon);
-                   
                 }
             }
         }
@@ -486,7 +516,6 @@ BishopModel parse_bishop_model(const string &json)
                         new_soilpolygon.points.push_back(p);
                     }
                     soilpolygons_below_pl.push_back(new_soilpolygon);
-                    
                 }
             }
             int j = 1;
@@ -497,7 +526,6 @@ BishopModel parse_bishop_model(const string &json)
         for (SoilPolygon spg : soilpolygons)
         {
             soilpolygons_above_pl.push_back(spg);
-            
         }
     }
 
@@ -515,7 +543,7 @@ BishopModel parse_bishop_model(const string &json)
 vector<double> calculate_bishop() // will become calculate_bishop(const string &json)
 {
     // for now we skip the given string and read a test file
-    ifstream file("../test/model.json");
+    ifstream file("../test/bishop.json");
     stringstream buffer{};
     buffer << file.rdbuf();
     string json = buffer.str();
@@ -546,9 +574,13 @@ vector<double> calculate_bishop() // will become calculate_bishop(const string &
         {
             for (int nt = 0; nt < NUM_T; ++nt)
             {
-                double x = model.bishop_search_grid.left + nx * dx;
-                double z = model.bishop_search_grid.bottom + nz * dz;
-                double t = model.bishop_search_grid.tangents_bottom + nt * dt;
+                // double x = model.bishop_search_grid.left + nx * dx;
+                // double z = model.bishop_search_grid.bottom + nz * dz;
+                // double t = model.bishop_search_grid.tangents_bottom + nt * dt;
+
+                double x = 23.5;
+                double y = 3.8;
+                double t = -3.7;
 
                 threads[i] = thread(sf_bishop, i, model, x, z, t, &sfs[i]);
                 threads[i].join(); // remove this to enable threading again

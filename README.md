@@ -17,6 +17,10 @@ CStab makes use of the following libraries;
 
 GPLv3 so publish the code if you use / enhance it.
 
+## Notes
+
+Windows keeps trying to use VStudio, use ```cmake .. -G "MinGW Makefiles"``` to use MinGW instead
+
 ## Developer
 
 Rob van Putten, breinbaasnl@gmail.com 
