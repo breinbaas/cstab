@@ -1,4 +1,3 @@
-// #include <pybind11/pybind11.h> // should be added once we start working on the python part
 #include "clipper2/clipper.h"
 #include "rapidjson/document.h"
 #include "homog2d/homog2d.h"
@@ -16,9 +15,6 @@
 
 #include "const.h"
 #include "structs.h"
-
-#define STRINGIFY(x) #x
-#define MACRO_STRINGIFY(x) STRINGIFY(x)
 
 using namespace std;
 using namespace rapidjson;
@@ -528,13 +524,9 @@ BishopModel parse_bishop_model(const string &json)
     };
 }
 
-vector<double> calculate_bishop() // will become calculate_bishop(const string &json)
+vector<double> calculate_bishop(const string &json)
 {
     // for now we skip the given string and read a test file
-    ifstream file("../test/bishop.json");
-    stringstream buffer{};
-    buffer << file.rdbuf();
-    string json = buffer.str();
 
     // get the model from the string
     BishopModel model = parse_bishop_model(json);
@@ -591,5 +583,9 @@ vector<double> calculate_bishop() // will become calculate_bishop(const string &
 
 int main()
 {
-    vector<double> sfs = calculate_bishop(); // will become calculate_bishop("jsonstring");
+    ifstream file("../test/bishop.json");
+    stringstream buffer{};
+    buffer << file.rdbuf();
+    string json = buffer.str();
+    vector<double> sfs = calculate_bishop(json);
 }
