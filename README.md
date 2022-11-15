@@ -7,7 +7,7 @@ Developed by Rob van Putten | breinbaasnl@gmail.com | leveelogic@gmail.com
 CStab is a calculation kernel for slope stabiility assessments. By kernel I mean that there will never be user interface 
 code in this repo but only a way to send a model to the programme which then returns the slope stability safety factor. 
 Since this programme is meant to be a calculation kernel for my [LeveeLogic web application](https://app.leveelogic.com) 
-I expect a certain input called which consists of a json file with soil and geometry information. 
+I expect a certain input which consists of a json file with soil and geometry information. 
 
 You can find an example of the input in this repo under the test path. JSON can easily be edited and -even better- is
 perfectly suitable to be used in web communication. A little more info on the used JSON file; the geometry is 
