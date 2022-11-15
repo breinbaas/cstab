@@ -1,6 +1,8 @@
 #include "clipper2/clipper.h"
 #include "rapidjson/document.h"
 #include "homog2d/homog2d.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -67,7 +69,7 @@ Soil get_soil(const string &soilcode, const vector<Soil> soils)
             return soil;
         }
     }
-    throw std::invalid_argument("received unknown soilcode");
+    throw "received unknown soilcode";
 }
 
 string get_soil_at(const double x, const double z, const vector<SoilPolygon> &soilpoylgons)
@@ -81,7 +83,7 @@ string get_soil_at(const double x, const double z, const vector<SoilPolygon> &so
             return spg.soilcode;
         }
     }
-    throw std::invalid_argument("point not in polygons or on the edge of a polygon");
+    throw "point not in polygons or on the edge of a polygon";
 }
 
 /*
@@ -223,14 +225,28 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
         for (SoilPolygon spg : soilpolygons_above_pl)
         {
             h2d::CPolyline polygon = h2d::CPolyline(spg.points);
-            Soil soil = get_soil(spg.soilcode, model.soils);
-            W += polygon.area() * soil.y_dry;
+            try
+            {
+                Soil soil = get_soil(spg.soilcode, model.soils);
+                W += polygon.area() * soil.y_dry;
+            }
+            catch (const char *e)
+            {
+                throw(e);
+            }
         }
         for (SoilPolygon spg : soilpolygons_below_pl)
         {
             h2d::CPolyline polygon = h2d::CPolyline(spg.points);
-            Soil soil = get_soil(spg.soilcode, model.soils);
-            W += polygon.area() * soil.y_sat;
+            try
+            {
+                Soil soil = get_soil(spg.soilcode, model.soils);
+                W += polygon.area() * soil.y_sat;
+            }
+            catch (const char *e)
+            {
+                throw(e);
+            }
         }
 
         // cout << "base_alpha              : " << base_alpha << endl;
@@ -339,12 +355,21 @@ BishopModel parse_bishop_model(const string &json)
     // create a document using rapidjson
     Document document;
     document.Parse(json.c_str());
-    assert(document.IsObject());
+
+    if (!document.IsObject())
+    {
+        throw "Error reading document";
+    }
 
     // PARSE SOILCOLLECTION
     vector<Soil> soils = {};
     Value &v_soilcollection = document["soilcollection"]["soils"];
-    assert(v_soilcollection.IsArray());
+
+    if (!v_soilcollection.IsArray())
+    {
+        throw "Error reading soilcollection";
+    }
+
     for (SizeType i = 0; i < v_soilcollection.Size(); i++)
     {
         soils.push_back(Soil{
@@ -365,7 +390,11 @@ BishopModel parse_bishop_model(const string &json)
     double zmax = -1e9;
     vector<SoilPolygon> soilpolygons = {};
     Value &v_soilprofile2 = document["soilprofile2"]["soilpolygons"];
-    assert(v_soilprofile2.IsArray());
+    if (!v_soilprofile2.IsArray())
+    {
+        throw "Error reading soilprofile2 soilpolygons";
+    }
+    // assert(v_soilprofile2.IsArray());
 
     for (SizeType i = 0; i < v_soilprofile2.Size(); i++)
     {
@@ -393,7 +422,10 @@ BishopModel parse_bishop_model(const string &json)
     // PARSE PHREATIC LINE
     vector<h2d::Point2d> plpoints = {};
     Value &v_phreatic_line = document["phreatic_line"];
-    assert(v_phreatic_line.IsArray());
+    if (!v_phreatic_line.IsArray())
+    {
+        throw "Error reading phreatic line";
+    }
     for (SizeType i = 0; i < v_phreatic_line.Size(); i++)
     {
         double x = v_phreatic_line[i][0].GetDouble();
@@ -405,7 +437,10 @@ BishopModel parse_bishop_model(const string &json)
     // PARSE SURFACE LINE
     vector<h2d::Point2d> spoints = {};
     Value &v_surface_line = document["surface_line"];
-    assert(v_surface_line.IsArray());
+    if (!v_surface_line.IsArray())
+    {
+        throw "Error reading surface line";
+    }
     for (SizeType i = 0; i < v_surface_line.Size(); i++)
     {
         double x = v_surface_line[i][0].GetDouble();
@@ -524,7 +559,7 @@ BishopModel parse_bishop_model(const string &json)
     };
 }
 
-vector<double> calculate_bishop(const string &json)
+const char *calculate_bishop(const string &json)
 {
     // for now we skip the given string and read a test file
 
@@ -546,7 +581,7 @@ vector<double> calculate_bishop(const string &json)
 
     // iterate over the possible slope circle locations, multithreaded
     array<thread, NUM_T * NUM_X * NUM_Z> threads;
-    array<double, NUM_T * NUM_X * NUM_Z> sfs;
+    array<BishopResult, NUM_T * NUM_X * NUM_Z> sfs;
     int i = 0;
     for (int nx = 0; nx < NUM_X; ++nx)
     {
@@ -554,10 +589,11 @@ vector<double> calculate_bishop(const string &json)
         {
             for (int nt = 0; nt < NUM_T; ++nt)
             {
-                double x = model.bishop_search_grid.left + nx * dx;
-                double z = model.bishop_search_grid.bottom + nz * dz;
+                sfs[i].x = model.bishop_search_grid.left + nx * dx;
+                sfs[i].z = model.bishop_search_grid.bottom + nz * dz;
                 double t = model.bishop_search_grid.tangents_bottom + nt * dt;
-                threads[i] = thread(sf_bishop, i, model, x, z, t, &sfs[i]);
+                sfs[i].r = sfs[i].z - t;
+                threads[i] = thread(sf_bishop, i, model, x, z, t, &sfs[i].sf);
                 ++i;
             }
         }
@@ -571,21 +607,74 @@ vector<double> calculate_bishop(const string &json)
     // temporary code to measure performance
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
-    std::cout << "Elapsed time " << elapsed.count() << " ms\n";
+    // std::cout << "Elapsed time " << elapsed.count() << " ms\n";
 
-    /*for (auto &sf : sfs)
+    BishopResult final_result = {1e9, 0, 0, 0};
+    for (auto &r : sfs)
     {
-        std::cout << "sf =" << sf << endl;
-    }*/
+        if (r.sf < final_result.sf)
+        {
+            final_result = r;
+        }
+    }
+    // std::cout << "result =" << final_result.sf << endl;
 
-    return {};
+    Document d;
+    d.SetObject();
+    rapidjson::Document::AllocatorType &allocator = d.GetAllocator();
+    d.AddMember("x", final_result.x, allocator);
+    d.AddMember("z", final_result.z, allocator);
+    d.AddMember("r", final_result.r, allocator);
+    d.AddMember("sf", final_result.sf, allocator);
+
+    StringBuffer buffer;
+    Writer<StringBuffer> writer(buffer);
+    d.Accept(writer);
+
+    return buffer.GetString();
 }
 
-int main()
+int main(int argc, char **argv)
 {
-    ifstream file("../test/bishop.json");
-    stringstream buffer{};
-    buffer << file.rdbuf();
-    string json = buffer.str();
-    vector<double> sfs = calculate_bishop(json);
+
+    string json = "";
+
+    if (argc == 2)
+    {
+        json = argv[1];
+    }
+    else
+    {
+        Document d;
+        d.SetObject();
+        rapidjson::Document::AllocatorType &allocator = d.GetAllocator();
+        d.AddMember("error", "PStab requires a json string as the first and only argument", allocator);
+        StringBuffer buffer;
+        Writer<StringBuffer> writer(buffer);
+        d.Accept(writer);
+        cout << buffer.GetString();
+        return 1;
+    }
+
+    string response;
+    try
+    {
+        response = calculate_bishop(json);
+    }
+    catch (const char *error)
+    {
+        Document d;
+        d.SetObject();
+        rapidjson::Document::AllocatorType &allocator = d.GetAllocator();
+        Value s;
+        s.SetString(StringRef(error));
+        d.AddMember("error", s, allocator);
+        StringBuffer buffer;
+        Writer<StringBuffer> writer(buffer);
+        d.Accept(writer);
+        cout << buffer.GetString();
+        return 1;
+    }
+    cout << response;
+    return 0;
 }

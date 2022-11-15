@@ -79,3 +79,11 @@ public:
         // END DEBUG INFO
     }
 };
+
+struct BishopResult
+{
+    double sf; // safety factor
+    double x;  // x of circle centre point
+    double z;  // z of circle centre point
+    double r;  // radius of the circle
+};
