@@ -13,7 +13,7 @@
 #include <future>
 #include <cmath>
 
-#include <chrono> // temporay to allow performance measurements
+#include <chrono> // temporary to allow performance measurements
 
 #include "const.h"
 #include "structs.h"
@@ -22,6 +22,9 @@ using namespace std;
 using namespace rapidjson;
 using namespace Clipper2Lib;
 
+/*
+Function to create a clipper path from homog2d points
+*/
 PathsD h2dpoints_to_pathsd(const vector<h2d::Point2d> &points)
 {
     string s;
@@ -35,6 +38,9 @@ PathsD h2dpoints_to_pathsd(const vector<h2d::Point2d> &points)
     return p;
 }
 
+/*
+Function to convert a soilpolygon to a clipper path
+*/
 PathsD soilpolygon_to_pathsd(SoilPolygon &soilpolygon)
 {
     string s;
@@ -42,7 +48,9 @@ PathsD soilpolygon_to_pathsd(SoilPolygon &soilpolygon)
     return p;
 }
 
-// calculation of water pressure at the given x, z location
+/*
+Function to calculate the water pressure at the given x, z location
+*/
 double u_at(double x, double z, const h2d::OPolyline &phreatic_line)
 {
     for (int i = 1; i < phreatic_line.size(); i++)
@@ -60,6 +68,9 @@ double u_at(double x, double z, const h2d::OPolyline &phreatic_line)
     return 0.0;
 }
 
+/*
+Function to get the soil from a given soilcode
+*/
 Soil get_soil(const string &soilcode, const vector<Soil> soils)
 {
     for (Soil soil : soils)
@@ -72,6 +83,9 @@ Soil get_soil(const string &soilcode, const vector<Soil> soils)
     throw "received unknown soilcode";
 }
 
+/*
+Function to get a soilcode from a given x,z point
+*/
 string get_soil_at(const double x, const double z, const vector<SoilPolygon> &soilpoylgons)
 {
     for (SoilPolygon spg : soilpoylgons)
@@ -559,12 +573,31 @@ BishopModel parse_bishop_model(const string &json)
     };
 }
 
+/*
+Function that will calculate the Bishop slope stability safety factor based on
+the given json string. The input json should comply with the leveelogic
+CalculationModel.
+
+The result will be a json string with the following information;
+{
+    "x":23.5,                   x coordinate of the slope circle
+    "z":3.8,                    z coordinate of the slope circle
+    "r":5.5,                    radius of the slope circle
+    "sf":0.7095200041953091     safety factor (Bishop)
+}
+*/
 const char *calculate_bishop(const string &json)
 {
-    // for now we skip the given string and read a test file
-
     // get the model from the string
-    BishopModel model = parse_bishop_model(json);
+    BishopModel model;
+    try
+    {
+        model = parse_bishop_model(json);
+    }
+    catch (const char *error)
+    {
+        throw(error);
+    }
 
     // DEBUG
     // model.print();
@@ -593,6 +626,7 @@ const char *calculate_bishop(const string &json)
                 sfs[i].z = model.bishop_search_grid.bottom + nz * dz;
                 double t = model.bishop_search_grid.tangents_bottom + nt * dt;
                 sfs[i].r = sfs[i].z - t;
+                // todo error handling in thread
                 threads[i] = thread(sf_bishop, i, model, x, z, t, &sfs[i].sf);
                 ++i;
             }
@@ -605,8 +639,8 @@ const char *calculate_bishop(const string &json)
     }
 
     // temporary code to measure performance
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> elapsed = end - start;
+    // auto end = std::chrono::high_resolution_clock::now();
+    // std::chrono::duration<double, std::milli> elapsed = end - start;
     // std::cout << "Elapsed time " << elapsed.count() << " ms\n";
 
     BishopResult final_result = {1e9, 0, 0, 0};
@@ -636,7 +670,6 @@ const char *calculate_bishop(const string &json)
 
 int main(int argc, char **argv)
 {
-
     string json = "";
 
     if (argc == 2)

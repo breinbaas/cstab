@@ -89,7 +89,7 @@ and/or modify it under the terms of the [GPLv3 license](https://www.gnu.org/lice
 * [ ] num x, z and tangents lines should be part of the input, not constants
 * [ ] maybe? num slices should depend on the geometry but check first if this really makes a difference else keep constant
 * [ ] error handling
-* [ ] fix terminate called recursively error (missing soiltype)
+* [ ] fix terminate called recursively error (missing soiltype -> should check for missing soiltypes BEFORE starting calculation, this will remove the bug)
 
 **Later:**
 * [ ] implement SHANSEP for undrained behaviour
