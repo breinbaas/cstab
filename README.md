@@ -81,8 +81,8 @@ and/or modify it under the terms of the [GPLv3 license](https://www.gnu.org/lice
 **Currently not ready for release**
 
 **Before release 0.1:**
-* [ ] main should accept argument of type string
-* [ ] we now save an array of sf but we want the min(sf) with the xm, zm and radius of the circle as a result
+* [x] main should accept argument of type string
+* [x] we now save an array of sf but we want the min(sf) with the xm, zm and radius of the circle as a result
 * [ ] benchmark with dstability
 * [ ] cleanup code
 * [ ] improve code (check referencing etc.)
