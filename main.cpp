@@ -71,7 +71,7 @@ double u_at(double x, double z, const h2d::OPolyline &phreatic_line)
 /*
 Function to get the soil from a given soilcode
 */
-Soil get_soil(const string &soilcode, const vector<Soil> soils)
+Soil get_soil(const string &soilcode, const vector<Soil> &soils)
 {
     for (Soil soil : soils)
     {
@@ -125,12 +125,12 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
     // only proceed if we have at least 2 intersections
     if (!res())
     {
-        *sf = -9999;
+        *sf = 9999;
         return;
     }
     if (res.size() < 2)
     {
-        *sf = -9999;
+        *sf = 9999;
         return;
     }
 
@@ -246,7 +246,8 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
             }
             catch (const char *e)
             {
-                throw(e);
+                *sf = 9999;
+                return;
             }
         }
         for (SoilPolygon spg : soilpolygons_below_pl)
@@ -259,7 +260,8 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
             }
             catch (const char *e)
             {
-                throw(e);
+                *sf = 9999;
+                return;
             }
         }
 
@@ -309,7 +311,7 @@ void sf_bishop(const int i, const BishopModel &model, double mx, double mz, doub
     {
         if (iteration >= MAX_I || isnan(isf))
         {
-            isf = -9999.0;
+            isf = 9999.0;
             break;
         }
 
@@ -378,7 +380,6 @@ BishopModel parse_bishop_model(const string &json)
     // PARSE SOILCOLLECTION
     vector<Soil> soils = {};
     Value &v_soilcollection = document["soilcollection"]["soils"];
-
     if (!v_soilcollection.IsArray())
     {
         throw "Error reading soilcollection";
@@ -408,8 +409,6 @@ BishopModel parse_bishop_model(const string &json)
     {
         throw "Error reading soilprofile2 soilpolygons";
     }
-    // assert(v_soilprofile2.IsArray());
-
     for (SizeType i = 0; i < v_soilprofile2.Size(); i++)
     {
         Value &v_points = v_soilprofile2[i]["points"];
@@ -469,6 +468,9 @@ BishopModel parse_bishop_model(const string &json)
     double bottom = v_bishop_search_grid["bottom"].GetDouble();
     double width = v_bishop_search_grid["width"].GetDouble();
     double height = v_bishop_search_grid["height"].GetDouble();
+    int num_x = v_bishop_search_grid["num_x"].GetInt();
+    int num_z = v_bishop_search_grid["num_z"].GetInt();
+    int num_t = v_bishop_search_grid["num_tangent"].GetInt();
     double tangents_top = v_bishop_search_grid["tangents_top"].GetDouble();
     double tangents_bottom = v_bishop_search_grid["tangents_bottom"].GetDouble();
     double minimum_slip_plane_length = v_bishop_search_grid["minimum_slip_plane_length"].GetDouble();
@@ -478,8 +480,11 @@ BishopModel parse_bishop_model(const string &json)
         bottom,
         width,
         height,
+        num_x,
+        num_z,
         tangents_top,
         tangents_bottom,
+        num_t,
         minimum_slip_plane_length,
     };
 
@@ -583,55 +588,91 @@ The result will be a json string with the following information;
     "x":23.5,                   x coordinate of the slope circle
     "z":3.8,                    z coordinate of the slope circle
     "r":5.5,                    radius of the slope circle
-    "sf":0.7095200041953091     safety factor (Bishop)
+    "sf":0.7095200041953091     safety factor (Bishop) // sf == 9999 means that errors were found
 }
 */
 const char *calculate_bishop(const string &json)
 {
     // get the model from the string
     BishopModel model;
-    try
-    {
-        model = parse_bishop_model(json);
-    }
-    catch (const char *error)
-    {
-        throw(error);
-    }
+    model = parse_bishop_model(json);
 
     // DEBUG
     // model.print();
     // END DEBUG
+    const int num_x = model.bishop_search_grid.num_x;
+    const int num_z = model.bishop_search_grid.num_z;
+    const int num_t = model.bishop_search_grid.num_tangent;
+    const size_t N = num_t * num_x * num_z;
 
     double x = model.bishop_search_grid.left;
     double z = model.bishop_search_grid.bottom;
-    double dx = model.bishop_search_grid.width / double(NUM_X - 1);
-    double dz = model.bishop_search_grid.height / double(NUM_Z - 1);
-    double dt = (model.bishop_search_grid.tangents_top - model.bishop_search_grid.tangents_bottom) / double(NUM_T - 1);
+    double dx = model.bishop_search_grid.width / double(num_x - 1);
+    double dz = model.bishop_search_grid.height / double(num_z - 1);
+    double dt = (model.bishop_search_grid.tangents_top - model.bishop_search_grid.tangents_bottom) / double(num_t - 1);
 
     // temporary code to measure performance
     auto start = std::chrono::high_resolution_clock::now();
 
     // iterate over the possible slope circle locations, multithreaded
-    array<thread, NUM_T * NUM_X * NUM_Z> threads;
-    array<BishopResult, NUM_T * NUM_X * NUM_Z> sfs;
+    // prepare the input
+
+    vector<BishopResult> sfs;
     int i = 0;
-    for (int nx = 0; nx < NUM_X; ++nx)
+    for (int nx = 0; nx < num_x; ++nx)
     {
-        for (int nz = 0; nz < NUM_Z; ++nz)
+        for (int nz = 0; nz < num_z; ++nz)
         {
-            for (int nt = 0; nt < NUM_T; ++nt)
+            for (int nt = 0; nt < num_t; ++nt)
             {
-                sfs[i].x = model.bishop_search_grid.left + nx * dx;
-                sfs[i].z = model.bishop_search_grid.bottom + nz * dz;
+                double cx = model.bishop_search_grid.left + nx * dx;
+                double cz = model.bishop_search_grid.bottom + nz * dz;
                 double t = model.bishop_search_grid.tangents_bottom + nt * dt;
-                sfs[i].r = sfs[i].z - t;
-                // todo error handling in thread
-                threads[i] = thread(sf_bishop, i, model, x, z, t, &sfs[i].sf);
+                double r = cz - t;
+                sfs.push_back(BishopResult{0.0, cx, cz, r});
+                // threads.push_back(thread(sf_bishop, i, model, x, z, t, &sfs[i].sf)); this will create mem errors!
                 ++i;
             }
         }
     }
+
+    vector<thread> threads; // looks funny but avoids mem errors
+    i = 0;
+    for (int nx = 0; nx < num_x; ++nx)
+    {
+        for (int nz = 0; nz < num_z; ++nz)
+        {
+            for (int nt = 0; nt < num_t; ++nt)
+            {
+                double cx = model.bishop_search_grid.left + nx * dx;
+                double cz = model.bishop_search_grid.bottom + nz * dz;
+                double t = model.bishop_search_grid.tangents_bottom + nt * dt;
+                double r = cz - t;
+                threads.push_back(thread(sf_bishop, i, model, x, z, t, &sfs[i].sf));
+                ++i;
+            }
+        }
+    }
+
+    // array<thread, N> threads;
+    // array<BishopResult, N> sfs;
+    // int i = 0;
+    // for (int nx = 0; nx < num_x; ++nx)
+    // {
+    //     for (int nz = 0; nz < num_z; ++nz)
+    //     {
+    //         for (int nt = 0; nt < num_t; ++nt)
+    //         {
+    //             sfs[i].x = model.bishop_search_grid.left + nx * dx;
+    //             sfs[i].z = model.bishop_search_grid.bottom + nz * dz;
+    //             double t = model.bishop_search_grid.tangents_bottom + nt * dt;
+    //             sfs[i].r = sfs[i].z - t;
+    //             // todo error handling in thread
+    //             threads[i] = thread(sf_bishop, i, model, x, z, t, &sfs[i].sf);
+    //             ++i;
+    //         }
+    //     }
+    // }
 
     for (auto &t : threads) // uncomment this to add threading again
     {
@@ -643,15 +684,15 @@ const char *calculate_bishop(const string &json)
     // std::chrono::duration<double, std::milli> elapsed = end - start;
     // std::cout << "Elapsed time " << elapsed.count() << " ms\n";
 
-    BishopResult final_result = {1e9, 0, 0, 0};
+    BishopResult final_result = {9999, 0, 0, 0};
     for (auto &r : sfs)
     {
-        if (r.sf < final_result.sf)
+        if (r.sf > 0.0 && r.sf < final_result.sf)
         {
             final_result = r;
         }
     }
-    // std::cout << "result =" << final_result.sf << endl;
+    std::cout << "result =" << final_result.sf << endl;
 
     Document d;
     d.SetObject();

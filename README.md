@@ -68,6 +68,21 @@ of the polygons in my web application but I will probably move that calculation 
 You will also find some other input in the json file which simply is additional information that has been generated in
 the LeveeLogic web application for other processes.
 
+The output will follow the next format;
+
+```
+{
+    "x":23.5,
+    "z":3.8,
+    "r":7.5,
+    "sf":0.978
+}
+```
+
+Where x and z are the centre point of the Bishop circle, r is the radius and sf is the calculated safety factor. 
+
+**Note** if sf in the result is equal to 9999 this means that something went wrong during the calculation (for example, circles without intersections) or that invalid input was sent
+
 **Note** that the input will probably change over time since I have ideas and changing requirements for my web 
 application but the essence (JSON and polygons) will stay the same.
 
@@ -84,12 +99,11 @@ and/or modify it under the terms of the [GPLv3 license](https://www.gnu.org/lice
 * [x] main should accept argument of type string
 * [x] we now save an array of sf but we want the min(sf) with the xm, zm and radius of the circle as a result
 * [ ] benchmark with dstability
-* [ ] cleanup code
-* [ ] improve code (check referencing etc.)
+* [x] cleanup code (I will keep the couts for debugging purposes so that will not be cleaned up)
+* [x] improve code (check referencing etc.)
 * [ ] num x, z and tangents lines should be part of the input, not constants
-* [ ] maybe? num slices should depend on the geometry but check first if this really makes a difference else keep constant
-* [ ] error handling
-* [ ] fix terminate called recursively error (missing soiltype -> should check for missing soiltypes BEFORE starting calculation, this will remove the bug)
+* [x] error handling
+* [x] fix terminate called recursively error (missing soiltype -> should check for missing soiltypes BEFORE starting calculation, this will remove the bug)
 
 **Later:**
 * [ ] implement SHANSEP for undrained behaviour

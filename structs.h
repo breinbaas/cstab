@@ -34,8 +34,11 @@ struct BishopSearchGrid
     double bottom;
     double width;
     double height;
+    int num_x;
+    int num_z;
     double tangents_top;
     double tangents_bottom;
+    int num_tangent;
     double minimum_slip_plane_length;
 };
 
@@ -82,7 +85,7 @@ public:
 
 struct BishopResult
 {
-    double sf; // safety factor
+    double sf; // safety factor NOTE -9999 means no safety factor found / error in input or calculation
     double x;  // x of circle centre point
     double z;  // z of circle centre point
     double r;  // radius of the circle
