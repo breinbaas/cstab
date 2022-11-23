@@ -591,7 +591,7 @@ The result will be a json string with the following information;
     "sf":0.7095200041953091     safety factor (Bishop) // sf == 9999 means that errors were found
 }
 */
-const char *calculate_bishop(const string &json)
+const string calculate_bishop(const string &json)
 {
     // get the model from the string
     BishopModel model;
@@ -692,7 +692,7 @@ const char *calculate_bishop(const string &json)
             final_result = r;
         }
     }
-    std::cout << "result =" << final_result.sf << endl;
+    // std::cout << "result =" << final_result.sf << endl;
 
     Document d;
     d.SetObject();
@@ -706,7 +706,7 @@ const char *calculate_bishop(const string &json)
     Writer<StringBuffer> writer(buffer);
     d.Accept(writer);
 
-    return buffer.GetString();
+    return string(buffer.GetString());
 }
 
 int main(int argc, char **argv)
